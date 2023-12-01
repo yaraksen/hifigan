@@ -33,6 +33,24 @@ def inf_loop(data_loader):
     for loader in repeat(data_loader):
         yield from loader
 
+from pynvml import *
+def find_device():
+    nvmlInit()
+    device_count = nvmlDeviceGetCount()
+    infos = []
+
+    for i in range(device_count):
+        handle = nvmlDeviceGetHandleByIndex(i)
+        info = nvmlDeviceGetMemoryInfo(handle)
+        infos.append((i, info.free))
+
+    infos.sort(key=lambda x: -x[1])
+    device = infos[0][0]
+
+    nvmlShutdown()
+
+    return device
+
 
 def prepare_device(n_gpu_use):
     """
@@ -52,7 +70,7 @@ def prepare_device(n_gpu_use):
         )
         n_gpu_use = n_gpu
 
-    device_id = 0
+    device_id = find_device()
     # on_server = os.path.exists("/kaggle/") or os.path.exists("/home/jupyter")
     device = torch.device(f"cuda:{device_id}" if n_gpu_use > 0 else "cpu")
     print(device)

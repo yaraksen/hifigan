@@ -1,50 +1,60 @@
 {
-  "name": "FastSpeech2_v3",
+  "name": "HiFiGAN",
   "n_gpu": 1,
   "arch": {
-    "type": "FastSpeech2",
+    "type": "HiFiGAN",
     "args": {
-      "fft_conv1d_kernel": [9, 1],
-      "fft_conv1d_padding": [4, 0],
-      "encoder_dim": 256,
-      "encoder_head": 2,
-      "encoder_n_layer": 4,
-      "encoder_conv1d_filter_size": 1024,
-      "decoder_dim": 256,
-      "decoder_head": 2,
-      "decoder_n_layer": 4,
-      "decoder_conv1d_filter_size": 1024,
-      "energy_filter_size": 256, "energy_kernel_size": 3,
-      "pitch_filter_size": 256, "pitch_kernel_size": 3,
-      "dur_filter_size": 256, "dur_kernel_size": 3,
-      "n_mels": 80, "n_bins": 256,
-      "pitch_min": 59.913448819015024, "pitch_max": 887.2688230720693,
-      "energy_min": 15.023642539978027, "energy_max": 91.4197006225586,
-      "max_seq_len": 3000,
-      "vocab_size": 300,
-      "PAD": 0,
-      "dropout": 0.1
+      "mpd_periods": [2, 3, 5, 7, 11],
+      "msd_num_scales": 3,
+      "upscale_kernels": [16, 16, 4, 4],
+      "upscale_init_height": 512,
+      "residual_kernels": [3, 7, 11],
+      "residual_dilations": [
+        [[1, 1], [3, 1], [5, 1]],
+        [[1, 1], [3, 1], [5, 1]],
+        [[1, 1], [3, 1], [5, 1]]
+      ]
     }
   },
   "loss": {
-    "type": "FSLoss",
-    "args": {}
-  },
-  "lr_scheduler": {
-    "type": "OneCycleLR",
+    "type": "HiFiGANLoss",
     "args": {
-      "anneal_strategy": "cos",
-      "pct_start": 0.1,
-      "max_lr": 1e-3,
-      "steps_per_epoch": 2000,
-      "epochs": 200
+      "fm_loss_weight": 2,
+      "mel_loss_weight": 45
+    }
+  },
+  "G_scheduler": {
+    "type": "ExponentialLR",
+    "args": {
+      "gamma": 0.9
+    }
+  },
+  "D_scheduler": {
+    "type": "ExponentialLR",
+    "args": {
+      "gamma": 0.9
+    }
+  },
+  "G_optimizer": {
+    "type": "AdamW",
+    "args": {
+      "lr": 2e-4,
+      "weight_decay": 1e-2,
+      "betas": [0.8, 0.99]
+    }
+  },
+  "D_optimizer": {
+    "type": "AdamW",
+    "args": {
+      "lr": 2e-4,
+      "weight_decay": 1e-2,
+      "betas": [0.8, 0.99]
     }
   },
   "trainer": {
-    "epochs": 200,
-    "len_epoch": 2000,
-    "batch_expand_size": 32,
-    "grad_norm_clip": 2,
+    "epochs": 2,
+    "len_epoch": 10,
+    "grad_norm_clip": 10,
     "monitor": "min val_loss",
     "early_stop": 500,
     "save_dir": "saved/",
@@ -53,21 +63,16 @@
     "verbosity": 2,
     "visualize": "wandb",
     "wandb_entity": "yaraksen",
-    "wandb_project": "fastspeech2"
+    "wandb_project": "hifigan"
   },
   "data": {
     "train": {
-      "batch_size": 64,
+      "batch_size": 1,
       "num_workers": 4,
       "datasets": [{
-          "type": "FSLJSpeechDataset",
+          "type": "HiFiLJSpeech",
           "args": {
-            "data_path": "data/train.txt",
-            "mel_ground_truth": "data/mels",
-            "alignment_path": "data/alignments",
-            "pitch_path": "data/pitch",
-            "energy_path": "data/energy",
-            "text_cleaners": ["english_cleaners"]
+            "data_path": "data/LJSpeech-1.1/"
           }}
       ]
     }
@@ -75,13 +80,6 @@
   "augmentations": {
     "wave": [],
     "spectrogram": []
-  },
-  "optimizer": {
-    "type": "AdamW",
-    "args": {
-      "lr": 1e-3,
-      "weight_decay": 0.000001
-    }
   },
   "metrics": []
 }

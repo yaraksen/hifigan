@@ -5,6 +5,7 @@ from numpy import inf
 
 from src.base import BaseModel
 from src.logger import get_visualizer
+from src.model.hifigan.model import HiFiGAN
 
 
 class BaseTrainer:
@@ -12,16 +13,26 @@ class BaseTrainer:
     Base class for all trainers
     """
 
-    def __init__(self, model: BaseModel, criterion, metrics, optimizer, scheduler, config, device):
+    def __init__(self,
+                 model: HiFiGAN,
+                 criterion,
+                 G_optimizer,
+                 D_optimizer,
+                 G_scheduler,
+                 D_scheduler,
+                 config, device):
         self.device = device
         self.config = config
         self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
 
         self.model = model
         self.criterion = criterion
-        self.metrics = metrics
-        self.optimizer = optimizer
-        self.scheduler = scheduler
+
+        self.G_optimizer = G_optimizer
+        self.D_optimizer = D_optimizer
+
+        self.G_scheduler = G_scheduler
+        self.D_scheduler = D_scheduler
 
         # for interrupt saving
         self._last_epoch = 0
@@ -149,8 +160,10 @@ class BaseTrainer:
             "arch": arch,
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "scheduler": self.scheduler.state_dict(),
+            "G_optimizer": self.G_optimizer.state_dict(),
+            "D_optimizer": self.D_optimizer.state_dict(),
+            "G_scheduler": self.G_scheduler.state_dict(),
+            "D_scheduler": self.D_scheduler.state_dict(),
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
@@ -187,16 +200,20 @@ class BaseTrainer:
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if (
-                checkpoint["config"]["optimizer"] != self.config["optimizer"] or
-                checkpoint["config"]["lr_scheduler"] != self.config["lr_scheduler"]
+                checkpoint["config"]["G_optimizer"] != self.config["G_optimizer"] or
+                checkpoint["config"]["D_optimizer"] != self.config["D_optimizer"] or
+                checkpoint["config"]["G_scheduler"] != self.config["G_scheduler"] or
+                checkpoint["config"]["D_scheduler"] != self.config["D_scheduler"]
         ):
             self.logger.warning(
                 "Warning: Optimizer or lr_scheduler given in config file is different "
                 "from that of checkpoint. Optimizer parameters not being resumed."
             )
         else:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.scheduler.load_state_dict(checkpoint["scheduler"])
+            self.G_optimizer.load_state_dict(checkpoint["G_optimizer"])
+            self.D_optimizer.load_state_dict(checkpoint["D_optimizer"])
+            self.G_scheduler.load_state_dict(checkpoint["G_scheduler"])
+            self.D_scheduler.load_state_dict(checkpoint["D_scheduler"])
 
         self.logger.info(
             "Checkpoint loaded. Resume training from epoch {}".format(self.start_epoch)

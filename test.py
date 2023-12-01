@@ -14,9 +14,6 @@ from src.utils.object_loading import get_dataloaders
 from src.utils.parse_config import ConfigParser
 import src.metric as module_metric
 from src.utils import MetricTracker
-from waveglow import get_wav, inference
-import audio
-from text import text_to_sequence
 
 DEFAULT_CHECKPOINT_PATH = ROOT_PATH / "default_test_model" / "checkpoint.pth"
 

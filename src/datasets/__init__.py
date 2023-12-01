@@ -3,7 +3,7 @@ from src.datasets.custom_dir_audio_dataset import CustomDirAudioDataset
 from src.datasets.librispeech_dataset import LibrispeechDataset
 from src.datasets.ljspeech_dataset import LJspeechDataset
 from src.datasets.ss_dataset import SpeechSeparationDataset
-from src.datasets.fs_ljspeech_dataset import FSLJSpeechDataset
+from src.datasets.hifigan_ljspeech import HiFiLJSpeech
 
 __all__ = [
     "LibrispeechDataset",
@@ -11,5 +11,5 @@ __all__ = [
     "CustomAudioDataset",
     "LJspeechDataset",
     "SpeechSeparationDataset",
-    "FSLJSpeechDataset"
+    "HiFiLJSpeech"
 ]
