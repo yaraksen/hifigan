@@ -59,7 +59,7 @@ class Trainer(BaseTrainer):
         if self.len_epoch == 1:
             self.log_step = 1
         else:
-            self.log_step = 2 # TODO
+            self.log_step = 50
 
         print('self.log_step:', self.log_step)
         print('self.len_epoch:', self.len_epoch)
