@@ -65,12 +65,12 @@
   },
   "data": {
     "train": {
-      "batch_size": 16,
+      "batch_size": 7,
       "num_workers": 4,
       "datasets": [{
           "type": "HiFiLJSpeech",
           "args": {
-            "data_path": "data/LJSpeech-1.1"
+            "data_path": "/kaggle/input/fastspeecch-dataset/data/data/LJSpeech-1.1"
           }}
       ]
     }
