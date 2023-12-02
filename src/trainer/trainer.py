@@ -63,7 +63,7 @@ class Trainer(BaseTrainer):
         print('self.log_step:', self.log_step)
         print('self.len_epoch:', self.len_epoch)
 
-        metric_keys = ["G_loss", "G_mel_loss", "G_fm_loss", "G_adv_loss", "D_loss"]
+        metric_keys = ["G_loss", "mel_loss", "fm_loss", "adv_loss", "D_loss"]
         self.train_metrics = MetricTracker(
             "G grad norm", "D grad norm", *[m for m in metric_keys], writer=self.writer
         )
@@ -97,7 +97,7 @@ class Trainer(BaseTrainer):
 
         for batch_idx, batch in enumerate(
                 tqdm(self.train_dataloader, desc="train", total=self.len_epoch - 1)
-        ):  
+        ):
             try:
                 batch = self.process_batch(
                     batch,
@@ -118,8 +118,13 @@ class Trainer(BaseTrainer):
             if global_step % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.logger.debug(
-                    "Train Epoch: {} {} Loss: {:.6f}".format(
-                        epoch, self._progress(batch_idx), batch["loss"].item()
+                    "Train Epoch: {} {} G Loss: {:.6f}".format(
+                        epoch, self._progress(batch_idx), batch["G_loss"].item()
+                    )
+                )
+                self.logger.debug(
+                    "Train Epoch: {} {} D Loss: {:.6f}".format(
+                        epoch, self._progress(batch_idx), batch["D_loss"].item()
                     )
                 )
                 self.writer.add_scalar(
@@ -141,10 +146,8 @@ class Trainer(BaseTrainer):
                 break
         log = last_train_metrics
 
-        if self.G_scheduler is not None:
-            self.G_scheduler.step()
-        if self.D_scheduler is not None:
-            self.D_scheduler.step()
+        self.G_scheduler.step()
+        self.D_scheduler.step()
 
         return log
 
@@ -156,7 +159,8 @@ class Trainer(BaseTrainer):
 
         G_outputs = self.model.generator(**batch)
         batch.update(G_outputs)
-        print(batch["real_wavs"].shape, batch["fake_wavs"].shape)
+        # print("real:", batch["real_wavs"].shape, "fake:", batch["fake_wavs"].shape)
+        # print(batch["fake_wavs"][0])
 
         D_outputs = self.model.discriminator(real_wavs=batch["real_wavs"], fake_wavs=batch["fake_wavs"].detach())
         batch.update(D_outputs)
@@ -200,7 +204,7 @@ class Trainer(BaseTrainer):
     
     def _log_audio(self, audio: torch.Tensor, tag: str):
         # audio = random.choice(audio_batch.cpu())
-        self.writer.add_audio(tag, audio.cpu(), sample_rate=16000)
+        self.writer.add_audio(tag, audio.cpu()[0], sample_rate=22050)
 
     # @torch.no_grad()
     # def get_grad_norm(self, norm_type=2):

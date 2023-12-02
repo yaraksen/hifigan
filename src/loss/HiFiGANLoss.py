@@ -39,7 +39,7 @@ class HiFiGANLoss(Module):
     
     def D_loss(self, real_msd_logits, fake_msd_logits, real_mpd_logits, fake_mpd_logits, **batch) -> dict:
         D_loss = 0.0
-        for real_logits, fake_logits in zip(real_msd_logits, fake_msd_logits):
+        for real_logits, fake_logits in zip(real_msd_logits, fake_msd_logits):            
             D_loss = D_loss + torch.mean(torch.square(real_logits - 1)) + torch.mean(torch.square(fake_logits))
         for real_logits, fake_logits in zip(real_mpd_logits, fake_mpd_logits):
             D_loss = D_loss + torch.mean(torch.square(real_logits - 1)) + torch.mean(torch.square(fake_logits))

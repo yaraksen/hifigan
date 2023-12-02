@@ -31,8 +31,7 @@ class HiFiLJSpeech(Dataset):
 
     def __getitem__(self, idx):
         wav, _ = torchaudio.load(self.wav_files[idx])
-        print(wav.shape)
-        wav_len = 22272
+        wav_len = 8192 # 22272
         audio_start = randint(low=0, high=wav.shape[1] - wav_len, size=(1,))
         wav = wav[:, audio_start: audio_start + wav_len]
         return {
