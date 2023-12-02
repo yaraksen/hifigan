@@ -24,13 +24,13 @@
   "G_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.999
+      "gamma": 0.99
     }
   },
   "D_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.999
+      "gamma": 0.99
     }
   },
   "G_optimizer": {
