@@ -50,7 +50,7 @@
     }
   },
   "trainer": {
-    "epochs": 3000,
+    "epochs": 300,
     "len_epoch": 100,
     "grad_norm_clip": 10,
     "monitor": "min val_loss",
@@ -70,7 +70,7 @@
       "datasets": [{
           "type": "HiFiLJSpeech",
           "args": {
-            "data_path": "/kaggle/input/fastspeecch-dataset/data/data/LJSpeech-1.1"
+            "data_path": "data/LJSpeech-1.1"
           }}
       ]
     }

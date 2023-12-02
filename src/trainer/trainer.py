@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
+from itertools import chain
 
 from src.base import BaseTrainer
 from src.base.base_text_encoder import BaseTextEncoder
@@ -58,14 +59,14 @@ class Trainer(BaseTrainer):
         if self.len_epoch == 1:
             self.log_step = 1
         else:
-            self.log_step = 100
+            self.log_step = 2 # TODO
 
         print('self.log_step:', self.log_step)
         print('self.len_epoch:', self.len_epoch)
 
         metric_keys = ["G_loss", "mel_loss", "fm_loss", "adv_loss", "D_loss"]
         self.train_metrics = MetricTracker(
-            "G grad norm", "D grad norm", *[m for m in metric_keys], writer=self.writer
+            "G_grad_norm", "D_grad_norm", *[m for m in metric_keys], writer=self.writer
         )
 
     @staticmethod
@@ -169,6 +170,7 @@ class Trainer(BaseTrainer):
         batch.update(D_loss)
         D_loss["D_loss"].backward()
         self.D_optimizer.step()
+        batch["D_grad_norm"] = self.get_grad_norm(chain(self.model.msd.parameters(), self.model.mpd.parameters()))
 
         # G optimizing
         self.G_optimizer.zero_grad()
@@ -180,9 +182,10 @@ class Trainer(BaseTrainer):
         batch.update(G_loss)
         G_loss["G_loss"].backward()
         self.G_optimizer.step()
+        batch["G_grad_norm"] = self.get_grad_norm(self.model.gen.parameters())
 
         for k, v in batch.items():
-            if "loss" in k:
+            if "loss" in k or "grad_norm" in k:
                 metrics.update(k, v.item())
         
         return batch
@@ -206,19 +209,18 @@ class Trainer(BaseTrainer):
         # audio = random.choice(audio_batch.cpu())
         self.writer.add_audio(tag, audio.cpu()[0], sample_rate=22050)
 
-    # @torch.no_grad()
-    # def get_grad_norm(self, norm_type=2):
-    #     parameters = self.model.parameters()
-    #     if isinstance(parameters, torch.Tensor):
-    #         parameters = [parameters]
-    #     parameters = [p for p in parameters if p.grad is not None]
-    #     total_norm = torch.norm(
-    #         torch.stack(
-    #             [torch.norm(p.grad.detach(), norm_type).cpu() for p in parameters]
-    #         ),
-    #         norm_type,
-    #     )
-    #     return total_norm.item()
+    @torch.no_grad()
+    def get_grad_norm(self, parameters, norm_type=2):
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = [p for p in parameters if p.grad is not None]
+        total_norm = torch.norm(
+            torch.stack(
+                [torch.norm(p.grad.detach(), norm_type).cpu() for p in parameters]
+            ),
+            norm_type,
+        )
+        return total_norm
 
     def _log_scalars(self, metric_tracker: MetricTracker):
         if self.writer is None:
