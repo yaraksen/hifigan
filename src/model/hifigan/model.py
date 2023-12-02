@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Tuple
 from src.model.hifigan.generator import Generator
 from src.model.hifigan.discriminator import MPD, MSD
+from src.model.hifigan.utils import MelSpectrogramConfig, MelSpectrogram
 
 
 def get_conv_shape(I, K, P, S, D=1):
@@ -20,8 +21,8 @@ class HiFiGAN(nn.Module):
                  msd_num_scales: int,
                  **kwargs):
         super().__init__()
-        self.generator = Generator(**kwargs)
-        # self.mel_creator = MelSpectrogram(MelSpectrogramConfig())
+        self.gen = Generator(**kwargs)
+        self.mel_creator = MelSpectrogram(MelSpectrogramConfig())
 
         self.mpd = MPD(mpd_periods)
         self.msd = MSD(msd_num_scales)
@@ -36,7 +37,7 @@ class HiFiGAN(nn.Module):
 
     def generator(self, real_mels, real_wavs, **batch):
         # real_mels = self.mel_creator(real_wavs)
-        fake_wavs = self.generator(real_mels)
+        fake_wavs = self.gen(real_mels)
         fake_mels = self.mel_creator(fake_wavs)
         return {
             "fake_wavs": fake_wavs,

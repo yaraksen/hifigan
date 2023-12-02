@@ -30,12 +30,11 @@ class HiFiLJSpeech(Dataset):
         return len(self.wav_files)
 
     def __getitem__(self, idx):
-        wav, sr = torchaudio.load(self.wav_files[idx])
-        print("wav:", wav.shape)
-        audio_start = randint(0, wav.shape[1] - sr * 1)
-        wav = wav[:, audio_start: audio_start + sr * 1]
-        assert wav.shape[1] == sr
-        print("sr", sr)
+        wav, _ = torchaudio.load(self.wav_files[idx])
+        print(wav.shape)
+        wav_len = 22272
+        audio_start = randint(low=0, high=wav.shape[1] - wav_len, size=(1,))
+        wav = wav[:, audio_start: audio_start + wav_len]
         return {
             "real_wavs": wav,
             "real_mels": self.mel_creator(wav.detach())

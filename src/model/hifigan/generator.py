@@ -21,11 +21,12 @@ class ResBlock(nn.Module):
         blocks = [nn.ModuleList([None for l in range(self.l_max)]) for m in range(self.m_max)]
         for m in range(self.m_max):
             for l in range(self.l_max):
-                blocks[m][l] = nn.Sequential( # TODO: fix paddings
+                blocks[m][l] = nn.Sequential(
                     nn.LeakyReLU(0.1),
-                    self.norm(nn.ConvTranspose1d(
+                    self.norm(nn.Conv1d(
                         in_channels=conv_channels,
                         out_channels=conv_channels,
+                        padding="same",
                         kernel_size=residual_kernel,
                         dilation=residual_dilations[m][l]
                     )))
@@ -56,7 +57,7 @@ class MRF(nn.Module):
             blocks.append(ResBlock(
                 residual_kernels[n],
                 residual_dilations[n],
-                in_channels
+                conv_channels=in_channels
             ))
         return nn.ModuleList(blocks)
 
@@ -96,16 +97,17 @@ class Generator(nn.Module):
     def get_transpose_blocks(self, upscale_kernels, upscale_init_height, **kwargs):
         blocks = []
         for l in range(len(upscale_kernels)):
-            blocks += [
+            blocks.append(nn.Sequential(
                 nn.LeakyReLU(0.1),
                 self.norm(nn.ConvTranspose1d(
                     in_channels=(upscale_init_height // (2 ** l)),
                     out_channels=(upscale_init_height // (2 ** (l + 1))),
+                    padding=(upscale_kernels[l] - upscale_kernels[l] // 2) // 2,
                     kernel_size=upscale_kernels[l],
-                    stride=(upscale_kernels[l] // 2)
+                    stride=(upscale_kernels[l] // 2),
                 )),
                 MRF(in_channels=(upscale_init_height // (2 ** (l + 1))), **kwargs)
-            ]
+            ))
         return nn.ModuleList(blocks)
     
     def forward(self, mel, **batch):
@@ -113,4 +115,4 @@ class Generator(nn.Module):
         for i in range(len(self.transpose_blocks)):
             x = self.transpose_blocks[i](x)
         x = self.tanh(self.conv_out(self.relu(x)))
-        return {"fake_mels": x}
+        return x

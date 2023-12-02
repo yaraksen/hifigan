@@ -1,6 +1,7 @@
 import argparse
 import collections
 import warnings
+from itertools import chain
 
 import numpy as np
 import torch
@@ -51,20 +52,25 @@ def main(config):
 
     # build optimizer, learning rate scheduler. delete every line containing lr_scheduler for
     # disabling scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = config.init_obj(config["optimizer"], torch.optim, trainable_params)
-    lr_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, optimizer)
+    G_trainable_params = filter(lambda p: p.requires_grad, model.gen.parameters())
+    D_trainable_params = filter(lambda p: p.requires_grad, chain(model.msd.parameters(), model.mpd.parameters()))
+
+    G_optimizer = config.init_obj(config["G_optimizer"], torch.optim, G_trainable_params)
+    D_optimizer = config.init_obj(config["D_optimizer"], torch.optim, D_trainable_params)
+    
+    G_scheduler = config.init_obj(config["G_scheduler"], torch.optim.lr_scheduler, G_optimizer)
+    D_scheduler = config.init_obj(config["D_scheduler"], torch.optim.lr_scheduler, D_optimizer)
 
     trainer = Trainer(
         model,
         loss_module,
-        metrics,
-        optimizer,
-        lr_scheduler,
+        G_optimizer,
+        D_optimizer,
+        G_scheduler,
+        D_scheduler,
         config=config,
         device=device,
         dataloaders=dataloaders,
-        lr_scheduler=lr_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None)
     )
 

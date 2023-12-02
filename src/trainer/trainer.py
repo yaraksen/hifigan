@@ -46,7 +46,6 @@ class Trainer(BaseTrainer):
         self.skip_oom = skip_oom
         self.config = config
         self.train_dataloader = dataloaders["train"]
-        self.batch_expand_size = self.config["trainer"]["batch_expand_size"]
         if len_epoch is None:
             # epoch-based training
             self.len_epoch = len(self.train_dataloader)
@@ -63,7 +62,6 @@ class Trainer(BaseTrainer):
 
         print('self.log_step:', self.log_step)
         print('self.len_epoch:', self.len_epoch)
-        print('self.batch_expand_size', self.batch_expand_size)
 
         metric_keys = ["G_loss", "G_mel_loss", "G_fm_loss", "G_adv_loss", "D_loss"]
         self.train_metrics = MetricTracker(
@@ -75,7 +73,7 @@ class Trainer(BaseTrainer):
         """
         Move all necessary tensors to the HPU
         """
-        keys_to_gpu = ["real_wavs"]
+        keys_to_gpu = ["real_wavs", "real_mels"]
         for tensor_for_gpu in keys_to_gpu:
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
@@ -158,6 +156,7 @@ class Trainer(BaseTrainer):
 
         G_outputs = self.model.generator(**batch)
         batch.update(G_outputs)
+        print(batch["real_wavs"].shape, batch["fake_wavs"].shape)
 
         D_outputs = self.model.discriminator(real_wavs=batch["real_wavs"], fake_wavs=batch["fake_wavs"].detach())
         batch.update(D_outputs)

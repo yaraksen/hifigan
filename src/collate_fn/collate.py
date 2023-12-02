@@ -19,7 +19,7 @@ def collate_fn(dataset_items: List[dict]):
     """
 
     result_batch = {}
-    print(dataset_items[0]["real_wavs"].shape, dataset_items[0]["real_mels"].shape)
-    result_batch["real_wavs"] = torch.as_tensor([rec["real_wavs"].squeeze(0) for rec in dataset_items])
-    result_batch["real_mels"] = torch.as_tensor([rec["real_mels"] for rec in dataset_items])
+    result_batch["real_wavs"] = torch.cat([rec["real_wavs"] for rec in dataset_items], axis=0).unsqueeze(1)
+    result_batch["real_mels"] = torch.cat([rec["real_mels"] for rec in dataset_items], axis=0)
+    # print(result_batch["real_wavs"].shape, result_batch["real_mels"].shape)
     return result_batch
