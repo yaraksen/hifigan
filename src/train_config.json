@@ -50,7 +50,7 @@
     }
   },
   "trainer": {
-    "epochs": 3000,
+    "epochs": 300,
     "len_epoch": 100,
     "grad_norm_clip": 10,
     "monitor": "min val_loss",
