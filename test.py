@@ -14,56 +14,23 @@ from src.utils.object_loading import get_dataloaders
 from src.utils.parse_config import ConfigParser
 import src.metric as module_metric
 from src.utils import MetricTracker
+from glob import glob
+import torchaudio
+from src.model.hifigan.utils import MelSpectrogramConfig, MelSpectrogram
+import torch.nn.functional as F 
 
 DEFAULT_CHECKPOINT_PATH = ROOT_PATH / "default_test_model" / "checkpoint.pth"
-
-
-def get_WaveGlow(waveglow_path: str):
-    wave_glow = torch.load(waveglow_path)['model']
-    wave_glow = wave_glow.remove_weightnorm(wave_glow)
-    wave_glow.cuda().eval()
-    for m in wave_glow.modules():
-        if 'Conv' in str(type(m)):
-            setattr(m, 'padding_mode', 'zeros')
-
-    return wave_glow
-
-def synthesis(model, text, alpha: float, beta: float, gamma: float):
-    text = np.stack([np.array(text)])
-    src_pos = np.array([i+1 for i in range(text.shape[1])])
-    src_pos = np.stack([src_pos])
-    sequence = torch.from_numpy(text).long().cuda()
-    src_pos = torch.from_numpy(src_pos).long().cuda()
-    
-    with torch.no_grad():
-        mel = model.forward(sequence, src_pos, alpha=alpha, beta=beta, gamma=gamma)["mel_pred"]
-    return mel[0].cpu().transpose(0, 1), mel.contiguous().transpose(1, 2)
-
-def check_params(a, b, g) -> bool:
-    if a == b == g:
-        return True
-    
-    if a != 1.0:
-        return (b == 1.0 and g == 1.0)
-    if b != 1.0:
-        return (a == 1.0 and g == 1.0)
-    if g != 1.0:
-        return (a == 1.0 and b == 1.0)
-    
-    raise Exception(f"{a, b, g} is wrong combination")
         
 
-def main(config, waveglow_path: str, out_dir: str):
+def main(config, wavs_path: str, out_dir: str):
     logger = config.get_logger("test")
+    wavs_path = Path(wavs_path)
+    out_dir = Path(out_dir)
 
     # define cpu or gpu if possible
     device_id = 0
-    device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cpu') # torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
     print(device)
-
-    # setup data_loader instances
-    # dataloaders = get_dataloaders(config)
-    # print('TEST SIZE:', len(dataloaders["test"]))
 
     # build model architecture
     model = config.init_obj(config["arch"], module_model)
@@ -79,42 +46,17 @@ def main(config, waveglow_path: str, out_dir: str):
     # prepare model for testing
     model = model.to(device)
     model.eval()
-
-    # metrics = [
-    #     config.init_obj(metric_dict, module_metric)
-    #     for metric_dict in config['metrics']
-    # ]
-
-    # metric_names = []
-    # for met in metrics:
-    #     metric_names.append(met.name)
-    
-    vocoder_model = get_WaveGlow(waveglow_path).to(device)
-    
-    # print(metric_names)
-    # evaluation_metrics = MetricTracker(*metric_names)
-
-    test_texts = ["A defibrillator is a device that gives a high energy electric shock to the heart of someone who is in cardiac arrest",
-                  "Massachusetts Institute of Technology may be best known for its math, science and engineering education",
-                  "Wasserstein distance or Kantorovich Rubinstein metric is a distance function defined between probability distributions on a given metric space"]
-    encoded_texts = [text_to_sequence(text, ["english_cleaners"]) for text in test_texts]
     os.makedirs(out_dir, exist_ok=True)
-
-    coeffs = [0.8, 1.0, 1.2]
+    mel_creator = MelSpectrogram(MelSpectrogramConfig())
+    
     with torch.no_grad():
-        for alpha in coeffs:
-            for beta in coeffs:
-                for gamma in coeffs:
-                    if not check_params(alpha, beta, gamma):
-                        continue
-
-                    for text_id, text in tqdm(enumerate(encoded_texts), desc=f"Processing {(alpha, beta, gamma)}..."):
-                        filename = f"{text_id}-[a={alpha}_b={beta}_g={gamma}].mp3"
-                        mel_cuda = synthesis(model, text, alpha, beta, gamma)[1]
-                        inference.inference(
-                            mel_cuda, vocoder_model,
-                            f"{out_dir}/{filename}"
-                        )
+        for file in tqdm(wavs_path.glob("*.wav"), desc=f"Processing..."):
+            audio, sr = torchaudio.load(file)
+            audio = F.pad(audio, (0, 256 - audio.shape[1] % 256), value=0)
+            mel = mel_creator(audio)
+            wav = model.gen(mel).squeeze(0)
+            assert wav.shape == audio.shape
+            torchaudio.save(out_dir / file.name, wav, sample_rate=sr)
 
 
 if __name__ == "__main__":
@@ -169,9 +111,9 @@ if __name__ == "__main__":
         help="Number of workers for test dataloader",
     )
     args.add_argument(
-        "-wgp",
-        "--waveglow_path",
-        default="waveglow.pth",
+        "-wp",
+        "--wavs_path",
+        default="wavs",
         type=str,
         help="File with checkpoint of vocoder model",
     )
@@ -218,4 +160,4 @@ if __name__ == "__main__":
     #     assert config.config.get("data", {}).get("test-clean", None) is not None
     #     assert config.config.get("data", {}).get("test-other", None) is not None
 
-    main(config, args.waveglow_path, args.output)
+    main(config, args.wavs_path, args.output)

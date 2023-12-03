@@ -38,7 +38,7 @@ class HiFiGAN(nn.Module):
     def generator(self, real_mels, real_wavs, **batch):
         # real_mels = self.mel_creator(real_wavs)
         fake_wavs = self.gen(real_mels)
-        fake_mels = self.mel_creator(fake_wavs)
+        fake_mels = self.mel_creator(fake_wavs).squeeze(1)
         return {
             "fake_wavs": fake_wavs,
             "fake_mels": fake_mels
