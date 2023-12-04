@@ -53,10 +53,8 @@ def prepare_device(n_gpu_use):
         n_gpu_use = n_gpu
 
     device_id = 0
-    if not os.path.exists("/kaggle/"):
-        device = torch.device(f"cpu")
-    else:
-        device = torch.device(f"cuda:{device_id}" if n_gpu_use > 0 else "cpu")
+    device = torch.device(f"cuda:{device_id}" if n_gpu_use > 0 else "cpu")
+    if n_gpu_use > 0:
         torch.cuda.set_device(device)
         torch.cuda.empty_cache()
     print(device)

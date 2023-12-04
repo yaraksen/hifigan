@@ -29,7 +29,7 @@ def main(config, wavs_path: str, out_dir: str):
 
     # define cpu or gpu if possible
     device_id = 0
-    device = torch.device('cpu') # torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
     print(device)
 
     # build model architecture
@@ -53,10 +53,10 @@ def main(config, wavs_path: str, out_dir: str):
         for file in tqdm(wavs_path.glob("*.wav"), desc=f"Processing..."):
             audio, sr = torchaudio.load(file)
             audio = F.pad(audio, (0, 256 - audio.shape[1] % 256), value=0)
-            mel = mel_creator(audio)
+            mel = mel_creator(audio).to(device)
             wav = model.gen(mel).squeeze(0)
             assert wav.shape == audio.shape
-            torchaudio.save(out_dir / file.name, wav, sample_rate=sr)
+            torchaudio.save(out_dir / file.name, wav.cpu(), sample_rate=sr)
 
 
 if __name__ == "__main__":

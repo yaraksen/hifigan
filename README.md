@@ -1,15 +1,13 @@
-# TTS project
+# TTS HiFiGAN project
 ### Aksenov Yaroslav
 
 ## Installation guide
 
-Download [model](https://disk.yandex.ru/d/-nriuAv-G-YclQ) to the folder ```final_model```
-Create folder ```data```
+Download [model](https://disk.yandex.ru/d/28qe10g33LdGzQ) to the folder ```final_model```
 
+Create folder ```"data/LJSpeech-1.1"``` with LJSpeech dataset
 ```shell
 pip install -r ./requirements.txt
-sh misc/get_misc.sh
-python misc/load_stats.py
 ```
 
 ## Launching guide
@@ -18,9 +16,9 @@ python misc/load_stats.py
    ```shell
    python test.py \
       -c src/train_config.json \
-      -wgp waveglow/pretrained_model/waveglow_256channels.pt \
-      -r final_model/model_best_tts.pth \
-      -o test_res
+      -o generated \
+      -r final_model/hifigan_ckpt.pth \
+      -wp wavs
    ```
 
 #### Training:
@@ -30,5 +28,5 @@ python misc/load_stats.py
       -wk "YOUR_WANDB_API_KEY"
    ```
 
-#### Тестовые записи
-Test audios with different alpha, beta, gamma are available in [test_audios](test_audios) directory
+#### Test outputs
+Audios for test melspecs are available in [generated](generated) directory

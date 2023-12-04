@@ -113,5 +113,5 @@ __MACOSX/
 
 final_model/model_best.pth
 bash_config.sh
-final_model/checkpoint*
+final_model/*.pth
 waveglow/pretrained_model/waveglow_256channels.pt
